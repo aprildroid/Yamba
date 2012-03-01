@@ -24,13 +24,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class YambaActivity extends Activity implements OnClickListener,
-TextWatcher, OnSharedPreferenceChangeListener{
+TextWatcher{
 	private static final String TAG = "StatusActivity";
 	EditText editText;
 	Button updateButton;
 	Twitter twitter;
 	TextView textCount;
-	SharedPreferences prefs;
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,12 +47,7 @@ TextWatcher, OnSharedPreferenceChangeListener{
         textCount.setTextColor(Color.GREEN);
         editText.addTextChangedListener(this);
         
-//        twitter = new Twitter("student", "password");
-//        twitter.setAPIRootUrl("http://yamba.marakana.com/api");
-        
-        // Setup preferences
-        prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        prefs.registerOnSharedPreferenceChangeListener(this);
+
     }
     
     // Asynchronously posts to twitter
@@ -61,11 +56,12 @@ TextWatcher, OnSharedPreferenceChangeListener{
 		@Override
 		protected String doInBackground(String... statuses) {
 			try{
-				Twitter.Status status = twitter.updateStatus(statuses[0]);
+				YambaApplication yamba = ((YambaApplication)getApplication());
+				Twitter.Status status = yamba.getTwitter().updateStatus(statuses[0]);
+						
 				return status.text;
 			}catch(TwitterException e){
-				Log.e(TAG, e.toString());
-				e.printStackTrace();
+				Log.e(TAG, "Failed to connect to twitter service",e);
 				return "Failed to post";
 			}
 			
@@ -86,29 +82,11 @@ TextWatcher, OnSharedPreferenceChangeListener{
     	
     }
     
-    private Twitter getTwitter() {
-    	if(twitter == null){
-    	String username, password, apiRoot;
-    	username = prefs.getString("username", "");
-    	password = prefs.getString("password", "");
-    	apiRoot = prefs.getString("apiRoot", "http://yamba.marakana.com/api");
-    	
-    	// Connect to twitter.com
-    	twitter = new Twitter(username, password);
-    	twitter.setAPIRootUrl(apiRoot);
-    	}
-    	return twitter;
-    }
     
     // Called when button is clicked 
 	@Override
 	public void onClick(View v) {
-//		twitter.setStatus(editText.getText().toString());
-		try{
-			getTwitter();
-		}catch (TwitterException e) {
-			Log.d(TAG, "Twitter setStatus failed: " + e);
-		}
+
 		String status = editText.getText().toString();
 		new PostToTwitter().execute(status);
 		Log.d(TAG, "onClicked");
@@ -158,13 +136,4 @@ TextWatcher, OnSharedPreferenceChangeListener{
 		return true;
 	}
 
-	@Override
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
-			String key) {
-		// invalidate twitter object
-		twitter = null;
-		
-	}
-	
-	
 }
