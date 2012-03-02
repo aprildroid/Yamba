@@ -129,6 +129,12 @@ TextWatcher{
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()){
+		case R.id.itemServiceStart:
+			startService(new Intent(this, UpdaterService.class));
+			break;
+		case R.id.itemServiceStop:
+			stopService(new Intent(this, UpdaterService.class));
+			break;
 		case R.id.itemPrefs:
 			startActivity(new Intent(this, PrefsActivity.class));
 		break;
