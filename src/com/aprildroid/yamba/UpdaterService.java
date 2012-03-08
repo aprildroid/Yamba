@@ -6,9 +6,12 @@ import winterwell.jtwitter.Twitter;
 import winterwell.jtwitter.TwitterException;
 
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.IBinder;
 import android.util.Log;
+import android.webkit.ValueCallback;
 
 public class UpdaterService extends Service {
 	static final String TAG = "UpdaterService";
@@ -17,6 +20,9 @@ public class UpdaterService extends Service {
 	private boolean runFlag = false;
 	private Updater updater;
 	private YambaApplication yamba;
+	
+	DbHelper dbHelper;
+	SQLiteDatabase db;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -28,6 +34,8 @@ public class UpdaterService extends Service {
 		super.onCreate();
 		this.yamba = (YambaApplication)getApplication();
 		this.updater = new Updater();
+		
+		dbHelper = new DbHelper(this);
 		
 		Log.d(TAG, "onCreated");
 	}
@@ -80,10 +88,27 @@ public class UpdaterService extends Service {
 					}catch (TwitterException e) {
 						Log.e(TAG, "Failed to concect to twitter service",e);
 					}
+					
+					// Open the database for writing
+					db = dbHelper.getWritableDatabase();
+					
 					// Loop over the timeline and print it out
+					ContentValues values = new ContentValues();
 					for (Twitter.Status status : timeline){
+						// Insert into database
+						values.clear();
+						values.put(DbHelper.C_ID, status.id);
+						values.put(DbHelper.C_CREATED_AT, status.createdAt.getTime());
+						values.put(DbHelper.C_SOURCE, status.source);
+						values.put(DbHelper.C_TEXT, status.text);
+						values.put(DbHelper.C_USER, status.user.name);
+						db.insertOrThrow(DbHelper.TABLE, null, values);
+						
 						Log.d(TAG, String.format("%s: %s", status.user.name, status.text));
 					}
+					
+					// Close the database
+					db.close();
 					
 					Log.d(TAG, "Updater ran");
 					Thread.sleep(DELAY);
